@@ -1,34 +1,57 @@
-const { poolPromise, sql } = require('../config/db');
+import { NextFunction, Request, Response } from 'express';
+import { poolPromise, sql } from '../config/db';
+
+// TypeScript interface for Account (based on your SQL table)
+interface Account {
+  AccountID: number;
+  Username: string;
+  Email: string;
+  Password: string;
+  FullName: string;
+  DateOfBirth: Date | null;
+  Role: string;
+  CreatedAt: Date;
+  IsDisabled: boolean;
+  ResetToken?: string | null;
+  ResetTokenExpiry?: Date | null;
+}
 
 // Get all accounts
-exports.getAccounts = async (req, res) => {
+export const getAccounts = async (req: Request, res: Response) => {
   try {
     const pool = await poolPromise;
     const result = await pool.request().query('SELECT * FROM Account');
-    res.json(result.recordset);
-  } catch (err) {
+    res.json(result.recordset as Account[]);
+  } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Get account by ID
-exports.getAccountById = async (req, res) => {
+export const getAccountById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const pool = await poolPromise;
     const result = await pool.request()
-      .input('AccountID', sql.Int, req.params.id)
+      .input('AccountID', sql.Int, parseInt(req.params.id, 10))
       .query('SELECT * FROM Account WHERE AccountID = @AccountID');
+
     if (result.recordset.length === 0) {
-      return res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: 'Account not found' });
+      return;
     }
+
     res.json(result.recordset[0]);
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 };
 
+
 // Create new account
-exports.createAccount = async (req, res) => {
+export const createAccount = async (req: Request, res: Response) => {
   const { username, email, password, fullName, dateOfBirth, role } = req.body;
   try {
     const pool = await poolPromise;
@@ -44,18 +67,19 @@ exports.createAccount = async (req, res) => {
         (Username, Email, Password, FullName, DateOfBirth, Role, CreatedAt) 
         VALUES (@Username, @Email, @Password, @FullName, @DateOfBirth, @Role, @CreatedAt)`);
     res.status(201).json({ message: 'Account created' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 };
 
 // Update account
-exports.updateAccount = async (req, res) => {
+export const updateAccount = async (req: Request, res: Response,): Promise<void> => {
+
   const { username, email, password, fullName, dateOfBirth, role, isDisabled } = req.body;
   try {
     const pool = await poolPromise;
     const result = await pool.request()
-      .input('AccountID', sql.Int, req.params.id)
+      .input('AccountID', sql.Int, parseInt(req.params.id, 10))
       .input('Username', sql.VarChar, username)
       .input('Email', sql.VarChar, email)
       .input('Password', sql.VarChar, password)
@@ -73,26 +97,27 @@ exports.updateAccount = async (req, res) => {
         IsDisabled=@IsDisabled
         WHERE AccountID=@AccountID`);
     if (result.rowsAffected[0] === 0) {
-      return res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: 'Account not found' });
     }
     res.json({ message: 'Account updated' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 };
 
 // Delete account
-exports.deleteAccount = async (req, res) => {
+export const deleteAccount = async (req: Request, res: Response): Promise<void> => {
+
   try {
     const pool = await poolPromise;
     const result = await pool.request()
-      .input('AccountID', sql.Int, req.params.id)
+      .input('AccountID', sql.Int, parseInt(req.params.id, 10))
       .query('DELETE FROM Account WHERE AccountID=@AccountID');
     if (result.rowsAffected[0] === 0) {
-      return res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: 'Account not found' });
     }
     res.json({ message: 'Account deleted' });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 };

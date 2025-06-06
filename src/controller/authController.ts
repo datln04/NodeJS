@@ -1,9 +1,14 @@
-require('dotenv').config();
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const { sql, poolPromise } = require("../config/db");
+import { NextFunction, Request, Response } from 'express';
+import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { sql, poolPromise } from '../config/db';
+import { sendEmail } from './mailController';
+import { welcomeTemplate } from '../template/welcome';
 
-async function login(req, res) {
+dotenv.config();
+
+export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { username, password } = req.body;
 
     try {
@@ -14,52 +19,56 @@ async function login(req, res) {
             .query('SELECT * FROM Account WHERE Username = @username');
         const user = result.recordset[0];
 
-        if (!user) return res.status(400).json({ message: "User not found" });
+        if (!user) {
+            res.status(400).json({ message: "User not found" });
+            return;
+        }
 
         const isMatch = await bcrypt.compare(password, user.Password);
-        if (!isMatch) return res.status(401).json({ message: "Invalid password" });
+        if (!isMatch) {
+            res.status(401).json({ message: "Invalid password" });
+            return;
+        }
+
         const token = jwt.sign(
             { userId: user.AccountID, role: user.Role },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET as string,
             { expiresIn: "1h" }
         );
 
         res.json({ token });
-    } catch (err) {
+    } catch (err: any) {
         console.error(err);
         res.status(500).json({ message: "Server error" });
     }
 }
 
-// Register function
-async function register(req, res) {
+export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { username, password, email, fullName, dateOfBirth, role } = req.body;
 
     try {
         const pool = await poolPromise;
 
-        // Check if user already exists
         const checkUser = await pool
             .request()
             .input('username', sql.VarChar, username)
             .query('SELECT * FROM Account WHERE Username = @username');
         if (checkUser.recordset.length > 0) {
-            return res.status(400).json({ message: "Username already exists" });
+            res.status(400).json({ message: "Username already exists" });
+            return;
         }
 
-        // Check if email already exists
         const checkEmail = await pool
             .request()
             .input('email', sql.VarChar, email)
             .query('SELECT * FROM Account WHERE Email = @email');
         if (checkEmail.recordset.length > 0) {
-            return res.status(400).json({ message: "Email already exists" });
+            res.status(400).json({ message: "Email already exists" });
+            return;
         }
 
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Insert new user
         await pool
             .request()
             .input('username', sql.VarChar, username)
@@ -71,19 +80,21 @@ async function register(req, res) {
             .input('createdAt', sql.DateTime2, new Date())
             .query(
                 `INSERT INTO Account 
-          (Username, Email, Password, FullName, DateOfBirth, Role, CreatedAt) 
-         VALUES 
-          (@username, @email, @password, @fullName, @dateOfBirth, @role, @createdAt)`
+                (Username, Email, Password, FullName, DateOfBirth, Role, CreatedAt) 
+                VALUES 
+                (@username, @email, @password, @fullName, @dateOfBirth, @role, @createdAt)`
             );
 
+        // Send welcome email
+        await sendEmail(
+            email,
+            '🎉 Welcome to Our App!',
+            welcomeTemplate(fullName, username)
+        );
+
         res.status(201).json({ message: "User registered successfully" });
-    } catch (err) {
+    } catch (err: any) {
         console.error(err);
         res.status(500).json({ message: "Server error" });
     }
 }
-
-module.exports = {
-    login,
-    register,
-};
