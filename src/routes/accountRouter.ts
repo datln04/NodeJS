@@ -1,5 +1,6 @@
 import express, { Router } from "express";
 import * as accountController from "../controller/accountController";
+import { resetPassword } from "../controller/authController";
 
 const router: Router = express.Router();
 
