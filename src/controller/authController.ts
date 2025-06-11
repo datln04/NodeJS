@@ -45,7 +45,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
 }
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { username, password, email, fullName, dateOfBirth, role } = req.body;
+    const { username, password, email, fullName, dateOfBirth } = req.body;
 
     try {
         const pool = await poolPromise;
@@ -77,7 +77,7 @@ export async function register(req: Request, res: Response, next: NextFunction):
             .input('password', sql.VarChar, hashedPassword)
             .input('fullName', sql.VarChar, fullName)
             .input('dateOfBirth', sql.Date, dateOfBirth || null)
-            .input('role', sql.VarChar, role || 'user')
+            .input('role', sql.VarChar, 'Member')
             .input('createdAt', sql.DateTime2, new Date())
             .query(
                 `INSERT INTO Account 
@@ -102,6 +102,8 @@ export async function register(req: Request, res: Response, next: NextFunction):
 
 export async function forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { email } = req.body;
+
+    console.log("Forgot password request for email:", email);
 
     try {
         const pool = await poolPromise;

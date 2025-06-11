@@ -1,20 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { poolPromise, sql } from '../config/db';
+import { Account } from '../type/Type';
 
-// TypeScript interface for Account (based on your SQL table)
-interface Account {
-  AccountID: number;
-  Username: string;
-  Email: string;
-  Password: string;
-  FullName: string;
-  DateOfBirth: Date | null;
-  Role: string;
-  CreatedAt: Date;
-  IsDisabled: boolean;
-  ResetToken?: string | null;
-  ResetTokenExpiry?: Date | null;
-}
 
 // Get all accounts
 export const getAccounts = async (req: Request, res: Response) => {

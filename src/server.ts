@@ -1,8 +1,9 @@
 import express, { Application } from "express";
 import cors from "cors";
 import apiAccountRoutes from "./routes/accountRouter";
+import apiSurveyRoutes from "./routes/surveyRouter";
 import authRoutes from "./routes/authRouter";
-import authenticateToken from "./middleware/authMiddleware";
+import authorizeRoles from "./middleware/authMiddleware";
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
@@ -11,14 +12,22 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 app.use(cors()); // Enable CORS for all routes
 
-// Public Auth Routes
-app.use("/api/auth", authRoutes);
+// Public Auth Routes (accessible to guests)
+app.use("/api/auth", authorizeRoles(["Guest"]), authRoutes);
 
-// JWT Middleware for all other routes
-app.use(authenticateToken);
-
-// Protected Routes
-app.use("/api/account", apiAccountRoutes);
+// TODO: Admin route only
+// Protected Account Routes (accessible to member, consultant, admin)
+app.use(
+  "/api/account",
+  authorizeRoles(["Admin"]),
+  apiAccountRoutes
+);
+// Manage social community program
+app.use(
+  "/api/survey",
+  authorizeRoles(["Admin"]),
+  apiSurveyRoutes
+);
 
 // Start the server
 app.listen(PORT, () => {
