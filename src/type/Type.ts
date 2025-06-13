@@ -139,5 +139,11 @@ export type SurveyResponse = {
 export type CommunityProgramSurvey = {
   SurveyID: number;
   ProgramID: number;
-  Type: string;
+};
+
+export type CommunityProgramSurveyDTO = {
+  ProgramID: number;
+  Name: string;
+  Description: string;
+  surveys: Survey[]
 };

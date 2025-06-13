@@ -2,6 +2,9 @@ import express, { Application } from "express";
 import cors from "cors";
 import apiAccountRoutes from "./routes/accountRouter";
 import apiSurveyRoutes from "./routes/surveyRouter";
+import apiCommunityProgramRoutes from "./routes/communityProgramRouter";
+import communityProgramAttendeRouter from "./routes/communityProgramAttendeRouter";
+import communityProgramSurveyRouter from "./routes/communityProgramSurveyRouter";
 import authRoutes from "./routes/authRouter";
 import authorizeRoles from "./middleware/authMiddleware";
 
@@ -28,6 +31,35 @@ app.use(
   authorizeRoles(["Admin"]),
   apiSurveyRoutes
 );
+
+// Manage social community program
+app.use(
+  "/api/survey",
+  authorizeRoles(["Admin"]),
+  apiSurveyRoutes
+);
+
+// Manage social community program
+app.use(
+  "/api/community-program",
+  authorizeRoles(["Admin", "Member", "Consultant", "Guest"]),
+  apiCommunityProgramRoutes
+);
+
+// Manage social community program
+app.use(
+  "/api/community-program-attendee",
+  authorizeRoles(["Admin", "Member", "Consultant", "Guest"]),
+  communityProgramAttendeRouter
+);
+
+// Manage social community program
+app.use(
+  "/api/community-program-survey",
+  authorizeRoles(["Admin"]),
+  communityProgramSurveyRouter
+);
+
 
 // Start the server
 app.listen(PORT, () => {
